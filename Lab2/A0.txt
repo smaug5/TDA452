@@ -1,0 +1,18 @@
+A0
+    hand2 = Add (Card (Numeric 2) Hearts)
+            (Add (Card Jack Spades) Empty)
+
+    size :: Num a => Hand -> a
+    size Empty
+    size (Add card hand) = 1 + size hand 
+    = 1 + (Add (Card Jack Spades) Empty) =
+         + size hand
+
+size Add (Card (Numeric 2) Hearts) (Add (Card Jack Spades) Empty)
+size (Add card                      hand)
+size hand2 = 1 + size hand
+size hand2 = 1 + size (Add (Card Jack Spades) Empty)
+size hand2 = 1 + size (     c                 h)
+size hand2 = 1 + 1 + size h
+size hand2 = 1 + 1 + size Empty
+size hand2 = 1 + 1 + 0 = 2
