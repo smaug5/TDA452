@@ -27,8 +27,8 @@ sizeSteps = [ size hand2
             , 2 ]
 
 displayCard :: Card -> String
-displayCard (Card (Numeric number) suit) = show number ++ " of " ++ show suit
-displayCard (Card rank suit) = show rank ++ " of " ++ show suit
+displayCard (Card (Numeric number) suit)    = show number ++ " of " ++ show suit
+displayCard (Card rank suit)                = show rank ++ " of " ++ show suit
 
 -- display with patternmatching so it doesn't say "Hand is empty" when there are cards
 display :: Hand -> String
@@ -39,10 +39,10 @@ display (Add card hand)  = displayCard card ++ ", " ++ display hand
 
 -- display with a guard to prevent "Hand is empty" when hand isn't empty
 display2 :: Hand -> String
-display2 Empty = "Hand is empty"
+display2 Empty              = "Hand is empty"
 display2 (Add card hand)
-    | hand == Empty = displayCard card
-    | otherwise     = displayCard card ++ ", " ++ display2 hand
+    | hand == Empty         = displayCard card
+    | otherwise             = displayCard card ++ ", " ++ display2 hand
 
 {- valueRank :: Rank -> Integer
 valueRank (Card Numeric rank _) = rank
@@ -55,18 +55,18 @@ valueRank Card                  = 10 -}
 value :: Hand -> Integer
 value hand 
     | initialValue hand > 21 = initialValue hand - numberOfAces hand * 10
-    | otherwise = initialValue hand
+    | otherwise              = initialValue hand
 
 numberOfAces :: Hand -> Integer
-numberOfAces Empty = 0
+numberOfAces Empty                   = 0
 numberOfAces (Add (Card Ace _) hand) = 1 + numberOfAces hand
-numberOfAces (Add _ hand) = 0 + numberOfAces hand
+numberOfAces (Add _ hand)            = 0 + numberOfAces hand
 
 initialValue :: Hand -> Integer
-initialValue Empty = 0
-initialValue (Add (Card Ace _) hand) = 11 + value hand
-initialValue (Add (Card (Numeric num) _) hand) = num + value hand
-initialValue (Add _ hand) = 10 + value hand
+initialValue Empty                              = 0
+initialValue (Add (Card Ace _) hand)            = 11 + value hand
+initialValue (Add (Card (Numeric num) _) hand)  = num + value hand
+initialValue (Add _ hand)                       = 10 + value hand
 
 
 -------------------A3-------------------------------------------
@@ -75,7 +75,7 @@ initialValue (Add _ hand) = 10 + value hand
 gameOver :: Hand -> Bool
 gameOver hand
     | value hand > 21 = True
-    | otherwise = False
+    | otherwise       = False
 
 
 ---------------------A4-----------------------------------------
