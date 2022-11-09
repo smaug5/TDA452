@@ -13,6 +13,8 @@ hand2 = Add (Card (Numeric 2) Hearts)
 
 hand1 = Add (Card Ace Spades) Empty
 
+testCard = Card Ace Spades
+
 
 sizeSteps :: [Integer]
 
@@ -42,7 +44,10 @@ display2 (Add card hand)
     | hand == Empty = displayCard card
     | otherwise     = displayCard card ++ ", " ++ display2 hand
 
-
+{- valueRank :: Rank -> Integer
+valueRank (Card Numeric rank _) = rank
+valueRank (Card Ace _)          = 11
+valueRank Card                  = 10 -}
 
 ----------------------------------A2--------------------------------
 
@@ -86,5 +91,26 @@ winner hand1 hand2
 
 (<+) :: Hand -> Hand -> Hand
 (<+) h1 Empty = h1
-(<+) h1 (Add card Empty) = Add card h1
 (<+) h1 (Add card h2) = Add card (h1 <+ h2)
+
+
+prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
+prop_onTopOf_assoc p1 p2 p3 =
+    p1<+(p2<+p3) == (p1<+p2)<+p3
+
+
+prop_size_onTopOf :: Hand -> Hand -> Bool
+prop_size_onTopOf h1 h2 = numberOfCards(h1 <+ h2) == numberOfCards(h1) + numberOfCards(h2)
+
+
+numberOfCards :: Hand -> Integer
+numberOfCards Empty = 0
+numberOfCards (Add _ hand) = 1 + numberOfCards hand
+
+---------------------B2----------------------------------------
+
+{- fullDeck :: Hand
+fullDeck 
+
+fullSuit :: suit -> Hand
+fullSuit hand = Card [1...10] suit -}
