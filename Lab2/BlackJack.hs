@@ -3,6 +3,9 @@ import Cards
 import RunGame
 import Test.QuickCheck
 
+hand4 = Add (Card Jack Spades)
+            (Add (Card Queen Hearts)
+            (Add (Card (Numeric 5) Diamonds) Empty))
 
 hand3 = Add (Card Ace Hearts)
             (Add (Card Ace Spades)
@@ -81,9 +84,10 @@ gameOver hand
 ---------------------A4-----------------------------------------
 
 winner :: Hand -> Hand -> Player
-winner hand1 hand2
-    | value hand1 <= value hand2 = Bank
-    | otherwise = Guest
+winner guestHand bankHand
+    | (value guestHand > value bankHand) && not (gameOver guestHand) = Guest
+    | gameOver bankHand && not (gameOver guestHand)= Guest
+    | otherwise = Bank
 
 
 ----------------------B1---------------------------------------
@@ -100,7 +104,7 @@ prop_onTopOf_assoc p1 p2 p3 =
 
 
 prop_size_onTopOf :: Hand -> Hand -> Bool
-prop_size_onTopOf h1 h2 = numberOfCards(h1 <+ h2) == numberOfCards(h1) + numberOfCards(h2)
+prop_size_onTopOf h1 h2 = numberOfCards(h1 <+ h2) == numberOfCards h1  + numberOfCards h2
 
 
 numberOfCards :: Hand -> Integer
@@ -109,8 +113,17 @@ numberOfCards (Add _ hand) = 1 + numberOfCards hand
 
 ---------------------B2----------------------------------------
 
-{- fullDeck :: Hand
-fullDeck 
+flist :: [a->b] -> a -> [b]
+flist fs a = map ($ a) fs
 
-fullSuit :: suit -> Hand
-fullSuit hand = Card [1...10] suit -}
+
+
+fullDeck :: Hand
+fullDeck = fullSuit [Hearts, Spades, Diamonds, Clubs]
+
+
+
+
+fullSuit suit = foldr Add Empty cardList
+    where cardList = flist (map Card mapCards) suit
+          mapCards = map Numeric [1..10] ++ [Jack, Queen, King, Ace]
