@@ -113,17 +113,31 @@ numberOfCards (Add _ hand) = 1 + numberOfCards hand
 
 ---------------------B2----------------------------------------
 
-flist :: [a->b] -> a -> [b]
-flist fs a = map ($ a) fs
-
-
-
 fullDeck :: Hand
-fullDeck = fullSuit [Hearts, Spades, Diamonds, Clubs]
+fullDeck = addCardsToHand allCards
 
 
+addCardsToHand :: [Card] -> Hand
+addCardsToHand [] = Empty
+addCardsToHand (card : cards) = Add card (addCardsToHand cards)
 
 
-fullSuit suit = foldr Add Empty cardList
-    where cardList = flist (map Card mapCards) suit
-          mapCards = map Numeric [1..10] ++ [Jack, Queen, King, Ace]
+allCards :: [Card]
+allCards = [Card rank suit| suit <- suits, rank <- ranks]
+    where ranks = (map Numeric [2..10] ++ [Jack, Queen, King, Ace])
+          suits = [Hearts, Spades, Diamonds, Clubs]
+
+----------------------B3-----------------------------------------
+
+first :: Hand -> Card
+first (Add card hand) = card
+
+
+draw :: Hand -> Hand -> (Hand, Hand)
+draw Empty hand = error "Draw: the deck is empty."
+draw (Add card deck) hand = (deck, hand <+ (Add card Empty))
+
+
+-----------------------B4----------------------------------------
+
+playBank :: Hand -> Hand
