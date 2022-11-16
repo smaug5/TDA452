@@ -2,6 +2,7 @@ module BlackJack where
 import Cards
 import RunGame
 import Test.QuickCheck
+import System.Random
 
 hand4 = Add (Card Jack Spades)
             (Add (Card Queen Hearts)
@@ -135,9 +136,38 @@ first (Add card hand) = card
 
 draw :: Hand -> Hand -> (Hand, Hand)
 draw Empty hand = error "Draw: the deck is empty."
-draw (Add card deck) hand = (deck, hand <+ (Add card Empty))
+draw (Add card deck) hand = (deck, Add card hand)
 
 
 -----------------------B4----------------------------------------
+type Deck = Hand
 
-playBank :: Hand -> Hand
+playBank :: Deck -> Hand
+playBank deck = playBankHelper deck Empty
+
+playBankHelper :: Deck -> Hand -> Hand
+playBankHelper deck bankHand
+                | value bankHand > 16 = bankHand
+                | otherwise = playBankHelper smallerDeck biggerHand
+                where (smallerDeck, biggerHand) = draw deck bankHand
+
+
+--------------------B5-----------------------------------------
+
+shuffleDeck :: StdGen -> Hand -> Hand
+shuffleDeck = undefined
+
+dieRoll :: StdGen -> (Integer,Integer)
+dieRoll g = (n1, n2)
+  where (n1, g1) = randomR (1,6) g
+        (n2, _ ) = randomR (1,6) g1
+
+
+belongsTo :: Card -> Hand -> Bool
+c `belongsTo` Empty = False
+c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
+
+
+prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
+prop_shuffle_sameCards g c h =
+    c `belongsTo` h == c `belongsTo` shuffleDeck g h
