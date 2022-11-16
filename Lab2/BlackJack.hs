@@ -154,13 +154,25 @@ playBankHelper deck bankHand
 
 --------------------B5-----------------------------------------
 
-shuffleDeck :: StdGen -> Hand -> Hand
-shuffleDeck = undefined
+shuffleDeck :: StdGen -> Deck -> Deck
+shuffleDeck gen Empty = Empty
+shuffleDeck gen (Add card Empty) = Add card Empty
+shuffleDeck gen deck             = (shuffleDeck gen' smallerDeck) <+ (Add card Empty)
+    where
+        (n, gen')                = (randomR (1,size deck) gen)
+        (smallerDeck, card)      = (removeNth deck n)
 
-dieRoll :: StdGen -> (Integer,Integer)
-dieRoll g = (n1, n2)
-  where (n1, g1) = randomR (1,6) g
-        (n2, _ ) = randomR (1,6) g1
+
+removeNth :: Deck -> Integer -> (Deck, Card)
+removeNth deck 1 = (smallerDeck, card)
+    where 
+        (smallerDeck, (Add card h)) = draw deck Empty
+removeNth deck n                    = (evenSmallerDeck <+ hand, card)
+    where
+        (smallerDeck, hand)         = draw deck Empty
+        (evenSmallerDeck, card)     = removeNth smallerDeck (n-1)
+
+
 
 
 belongsTo :: Card -> Hand -> Bool
@@ -171,3 +183,20 @@ c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
 prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
 prop_shuffle_sameCards g c h =
     c `belongsTo` h == c `belongsTo` shuffleDeck g h
+
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle gen deck = size deck == size (shuffleDeck gen deck)
+---------------------------B6----------------------------------------------
+implementation = Interface
+  { iFullDeck = fullDeck
+  , iValue    = value
+  , iDisplay  = display
+  , iGameOver = gameOver
+  , iWinner   = winner 
+  , iDraw     = draw
+  , iPlayBank = playBank
+  , iShuffle  = shuffleDeck
+  }
+
+main :: IO ()
+main = runGame implementation
