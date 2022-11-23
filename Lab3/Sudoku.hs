@@ -3,6 +3,7 @@ module Sudoku where
 import Test.QuickCheck
 import Data.Maybe
 import Data.List
+import Data.Char
 
 ------------------------------------------------------------------------------
 
@@ -65,8 +66,16 @@ allBlankSudoku = Sudoku $ replicate 9 $ replicate 9 n
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku sud = length(rows sud) == 9 && and [length row == 9 | row <- (rows sud)]
+isSudoku sud = length(rows sud) == 9 && and [length row == 9 | row <- rows sud] && all isCell cs
+  where 
+    rs = rows sud
+    cs = concat rs
 
+
+isCell :: Cell -> Bool
+isCell Nothing = True
+isCell (Just i) | i `elem` [1..9] = True 
+                | otherwise = False
 -- * A3
 
 -- | isFilled sud checks if sud is completely filled in,
@@ -101,29 +110,47 @@ cellToString (Just i) = show i
 -- | readSudoku file reads from the file, and either delivers it, or stops
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
-readSudoku = undefined
+readSudoku file = do
+            content <- readFile file
+            let ss = lines content
+            let rs = stringToRows ss
+            return $ Sudoku rs
 
+
+stringToRows :: [String] -> [Row]
+stringToRows  []                        = []
+stringToRows (s:ss) | length s == 9     = map charToCell s:stringToRows ss
+                    | otherwise         = error "Doesn't match sudokupattern"
+
+
+charToCell :: Char -> Cell
+charToCell '.'           = Nothing
+charToCell c | isDigit c = Just $ digitToInt c
+             | otherwise = error "File doesn't cointain a sudoku"
 ------------------------------------------------------------------------------
 
 -- * C1
 
 -- | cell generates an arbitrary cell in a Sudoku
 cell :: Gen (Cell)
-cell = undefined
+cell = frequency [(1, elements (map Just [1..9])), 
+                  (9, return Nothing)]
 
 
 -- * C2
 
 -- | an instance for generating Arbitrary Sudokus
 instance Arbitrary Sudoku where
-  arbitrary = undefined
+  arbitrary = do 
+    sud <-vectorOf 9 $ vectorOf 9 cell -- Gen [Row]
+    return $ Sudoku sud
 
  -- hint: get to know the QuickCheck function vectorOf
  
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
-prop_Sudoku = undefined
+prop_Sudoku = isSudoku
   -- hint: this definition is simple!
   
 ------------------------------------------------------------------------------
@@ -134,21 +161,36 @@ type Block = [Cell] -- a Row is also a Cell
 -- * D1
 
 isOkayBlock :: Block -> Bool
-isOkayBlock = undefined
+isOkayBlock block = length block == 9 && isNotDuplicate block
+
+isNotDuplicate :: Block -> Bool
+isNotDuplicate [] = True
+isNotDuplicate (Nothing:smallblock) = isNotDuplicate smallblock
+isNotDuplicate (cell:smallblock) = notElem cell smallblock && isNotDuplicate smallblock
 
 
 -- * D2
 
 blocks :: Sudoku -> [Block]
-blocks = undefined
+blocks sud = rows sud ++ columnBlock sud ++ blockBlocks sud
+
+columnBlock :: Sudoku -> [Block]
+columnBlock sud = transpose $ rows sud
+
+blockBlocks :: Sudoku -> [Block]
+blockBlocks sud = [blockBlock x y sud | x <- [0..2], y <- [0..2]]
+
+blockBlock :: Int -> Int -> Sudoku -> Block
+blockBlock x y sud = concatMap (take (3) . drop (3 * x)) ((take 3 . drop (3 * y)) $ rows sud)
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths = undefined
+prop_blocks_lengths sudoku = length (blocks sudoku) == 27 && 
+                             all (\x -> length x == 9) (blocks sudoku)
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay = undefined
+isOkay sud = all isOkayBlock (blocks sud)
 
 
 ---- Part A ends here --------------------------------------------------------
