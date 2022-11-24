@@ -59,15 +59,15 @@ valueRank (Card r _) _          = 10
 -- along the Bool for whether or not aces should be counted as 11 or 1.
 initialValue :: Hand -> Bool -> Integer
 initialValue Empty _             = 0
-initialValue (Add card Empty) b  = (valueRank card b)
-initialValue (Add card hand) b   = (valueRank card b) + (initialValue hand b)
+initialValue (Add card Empty) b  = valueRank card b
+initialValue (Add card hand) b   = valueRank card b + initialValue hand b
 
 -- if initialValue hand False > 21, then do initialValue hand True instead
 -- True means that aces now count as 1 instead of 11. Test with testHand3 and testHand4
 value :: Hand -> Integer
 value hand   
-        | (initialValue hand False > 21) = (initialValue hand True)
-        | otherwise = (initialValue hand False)
+        | initialValue hand False > 21 = initialValue hand True
+        | otherwise = initialValue hand False
 
 
 -----------------A3----------------------------
@@ -99,7 +99,7 @@ winner guestHand bankHand
 
 (<+) :: Hand -> Hand -> Hand
 (<+) Empty h1 = h1
-(<+) (Add card h2) h1 = Add card (h2 <+ h1)
+(<+) (Add card h1) h2 = Add card (h1 <+ h2)
 
 --- Checks that the operator <+ is associative
 prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
@@ -123,13 +123,12 @@ fullDeck = addCardsToHand allCards
 
 --- Helper function which adds all cards from a list to a hand
 addCardsToHand :: [Card] -> Hand
-addCardsToHand [] = Empty
-addCardsToHand (card : cards) = Add card (addCardsToHand cards)
+addCardsToHand cards = foldr Add Empty cards
 
 ---- Makes a list of all kind of cards in a standard deck (except Joker)
 allCards :: [Card]
 allCards = [Card rank suit| suit <- suits, rank <- ranks]
-    where ranks = (map Numeric [2..10] ++ [Jack, Queen, King, Ace])
+    where ranks = map Numeric [2..10] ++ [Jack, Queen, King, Ace]
           suits = [Hearts, Spades, Diamonds, Clubs]
 
 ----------------------B3-----------------------------------------
@@ -151,7 +150,7 @@ playBank deck = playBankHelper deck Empty
 --- Draws cards for the bank hand until it reaches a value of over 16
 playBankHelper :: Deck -> Hand -> Hand
 playBankHelper deck bankHand
-                | value bankHand > 16 = bankHand
+                | value bankHand >= 16 = bankHand
                 | otherwise = playBankHelper smallerDeck biggerHand
                 where (smallerDeck, biggerHand) = draw deck bankHand
 
@@ -163,10 +162,10 @@ playBankHelper deck bankHand
 shuffleDeck :: StdGen -> Deck -> Deck
 shuffleDeck gen Empty = Empty
 shuffleDeck gen (Add card Empty) = Add card Empty
-shuffleDeck gen deck             = (shuffleDeck gen' smallerDeck) <+ (Add card Empty)
+shuffleDeck gen deck             = shuffleDeck gen' smallerDeck <+ Add card Empty
     where
-        (n, gen')                = (randomR (1,size deck) gen)
-        (smallerDeck, card)      = (removeNth deck n)
+        (n, gen')                = randomR (1,size deck) gen
+        (smallerDeck, card)      = removeNth deck n
 
 
 -- Removes card number 'n' from the deck and then returns the rest of the deck, and
@@ -174,7 +173,7 @@ shuffleDeck gen deck             = (shuffleDeck gen' smallerDeck) <+ (Add card E
 removeNth :: Deck -> Integer -> (Deck, Card)
 removeNth deck 1 = (smallerDeck, card)
     where 
-        (smallerDeck, (Add card h)) = draw deck Empty
+        (smallerDeck, Add card h) = draw deck Empty
 removeNth deck n                    = (evenSmallerDeck <+ hand, card)
     where
         (smallerDeck, hand)         = draw deck Empty

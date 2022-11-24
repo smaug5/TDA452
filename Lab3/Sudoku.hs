@@ -181,7 +181,7 @@ blockBlocks :: Sudoku -> [Block]
 blockBlocks sud = [blockBlock x y sud | x <- [0..2], y <- [0..2]]
 
 blockBlock :: Int -> Int -> Sudoku -> Block
-blockBlock x y sud = concatMap (take (3) . drop (3 * x)) ((take 3 . drop (3 * y)) $ rows sud)
+blockBlock x y sud = concatMap (take 3 . drop (3 * x)) ((take 3 . drop (3 * y)) $ rows sud)
 
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sudoku = length (blocks sudoku) == 27 && 
