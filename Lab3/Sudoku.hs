@@ -4,6 +4,7 @@ import Test.QuickCheck
 import Data.Maybe
 import Data.List
 import Data.Char
+import GHC.Plugins (subDVarSet)
 
 ------------------------------------------------------------------------------
 
@@ -81,7 +82,7 @@ isCell (Just i) | i `elem` [1..9] = True
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = and . map isJust . concat . rows
+isFilled = all isJust . concat . rows
 
 ------------------------------------------------------------------------------
 
@@ -114,7 +115,10 @@ readSudoku file = do
             content <- readFile file
             let ss = lines content
             let rs = stringToRows ss
-            return $ Sudoku rs
+            let sud = Sudoku rs
+            if (isSudoku sud)
+              then return sud
+              else return $ error "Not a Sudoku!"
 
 
 stringToRows :: [String] -> [Row]
@@ -205,16 +209,21 @@ type Pos = (Int,Int)
 -- * E1
 
 blanks :: Sudoku -> [Pos]
-blanks = undefined
+blanks (Sudoku rows) = [(r,c) | r <- [0..8], c <- [0,8], isNothing (rows !! r !! c)]
 
---prop_blanks_allBlanks :: ...
---prop_blanks_allBlanks =
+
+
+prop_blanks_allBlanks :: Bool
+prop_blanks_allBlanks = isSudoku allBlankSudoku && (length (blanks allBlankSudoku) == 81)
 
 
 -- * E2
 
 (!!=) :: [a] -> (Int,a) -> [a]
-xs !!= (i,y) = undefined
+xs !!= (i,y)
+    | null xs = error "List is empty"
+    | length xs < i || i < 0 = error "Index out of bounds"
+    | otherwise = take i xs ++ [y] ++ drop (i+1) xs
 
 --prop_bangBangEquals_correct :: ...
 --prop_bangBangEquals_correct =
