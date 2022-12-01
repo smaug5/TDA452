@@ -4,7 +4,6 @@ import Test.QuickCheck
 import Data.Maybe
 import Data.List
 import Data.Char
-import GHC.Plugins (subDVarSet, DynFlags (fileSettings), OverlapFlag (isSafeOverlap))
 
 ------------------------------------------------------------------------------
 
@@ -115,8 +114,7 @@ readSudoku file = do
             if (isSudoku sud)
               then return sud
               else return $ error "Not a Sudoku!"
-
-
+              
 
 stringToRows :: [String] -> [Row]
 stringToRows  []                        = []

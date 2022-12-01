@@ -173,7 +173,7 @@ shuffleDeck gen deck             = shuffleDeck gen' smallerDeck <+ Add card Empt
 removeNth :: Deck -> Integer -> (Deck, Card)
 removeNth deck 1 = (smallerDeck, card)
     where 
-        (smallerDeck, Add card h) = draw deck Empty
+        (smallerDeck, Add card h)   = draw deck Empty
 removeNth deck n                    = (evenSmallerDeck <+ hand, card)
     where
         (smallerDeck, hand)         = draw deck Empty
