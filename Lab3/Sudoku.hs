@@ -227,7 +227,7 @@ xs !!= (i,y)
     | otherwise = take i xs ++ [y] ++ drop (i+1) xs
 
 
--- checks that the index is valid nad not out of bound
+-- checks that the index is valid and not out of bound
 validIndex :: [a] -> Int -> Bool
 validIndex xs i = length xs <= i || null xs || i <  0
 
@@ -269,10 +269,12 @@ solve sud
 
 -- helperfunction for solve by also taking in a list of all blank spaces
 solve' :: [Pos] -> Sudoku -> [Sudoku]
-solve' [] sud  = [sud]
+solve' [] sud
+    | isOkay sud = [sud]
+    | otherwise  = []
 solve' (pos:positions) sud
-    | isFilled sud        = [sud]
-    | not (isFilled sud)  = concatMap (solve' positions)
+    | isOkay sud && isFilled sud        = [sud]
+    | isOkay sud && not (isFilled sud)  = concatMap (solve' positions)
                                [update sud pos val | val <- map Just [1..9]]
     | otherwise                         = []
 
