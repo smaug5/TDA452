@@ -263,7 +263,7 @@ prop_update_updated sud (row, col) value =
 -- Solves a sudoku by testing to put in numbers in each blank space
 solve :: Sudoku -> Maybe Sudoku
 solve sud 
-    | not (isOkay sud) && null solutions = Nothing
+    | null solutions = Nothing
     | otherwise     = Just $ head solutions
   where solutions    = solve' (blanks sud) sud
 
