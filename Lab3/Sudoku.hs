@@ -263,18 +263,16 @@ prop_update_updated sud (row, col) value =
 -- Solves a sudoku by testing to put in numbers in each blank space
 solve :: Sudoku -> Maybe Sudoku
 solve sud 
-    | null solutions = Nothing
-    | otherwise      = Just $ head solutions
+    | not (isOkay sud) && null solutions = Nothing
+    | otherwise     = Just $ head solutions
   where solutions    = solve' (blanks sud) sud
 
 -- helperfunction for solve by also taking in a list of all blank spaces
 solve' :: [Pos] -> Sudoku -> [Sudoku]
-solve' [] sud
-    | isOkay sud = [sud]
-    | otherwise  = [] 
-solve' (pos:positions) sud 
-    | isOkay sud && isFilled sud        = [sud]
-    | isOkay sud && not (isFilled sud)  = concatMap (solve' positions)
+solve' [] sud  = [sud]
+solve' (pos:positions) sud
+    | isFilled sud        = [sud]
+    | not (isFilled sud)  = concatMap (solve' positions)
                                [update sud pos val | val <- map Just [1..9]]
     | otherwise                         = []
 
