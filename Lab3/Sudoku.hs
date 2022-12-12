@@ -4,6 +4,7 @@ import Test.QuickCheck
 import Data.Maybe
 import Data.List
 import Data.Char
+import GHC.Real
 
 ------------------------------------------------------------------------------
 
@@ -233,7 +234,7 @@ validIndex xs i = length xs <= i || null xs || i <  0
 
 -- checks so that !!= updates a list on the correct position
 -- and nothing else
-prop_bangBangEquals_correct :: (Int, Int) -> Property
+prop_bangBangEquals_correct :: [Int] -> (Int, Int) -> Property
 prop_bangBangEquals_correct org (i,y) = not (validIndex org i) ==>
                              length banged == length org && banged !! i == y
      where banged = org !!= (i,y)
@@ -250,10 +251,11 @@ update sud (row, col) newValue = Sudoku $ rows sud !!=
 -- and nothing else
 prop_update_updated :: Sudoku -> Pos -> Cell -> Property
 prop_update_updated sud (row, col) value = 
-  (9 > row && row >= 0) && (9 > col && col >= 0) ==> 
-    Sudoku (rows sud !!= (row, newRow)) == update sud (row, col) value
-  where newRow = (!!=) (rows sud !! row) (col, value)
-
+    isOkay sud ==> 
+    Sudoku (rows sud !!= (row', newRow)) == update sud (row', col') value
+  where newRow = (!!=) (rows sud !! row') (col', value)
+        row'   = abs row `mod` 8
+        col'   = abs col `mod` 8
 
 ------------------------------------------------------------------------------
 
