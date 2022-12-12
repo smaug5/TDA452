@@ -233,7 +233,7 @@ validIndex xs i = length xs <= i || null xs || i <  0
 
 -- checks so that !!= updates a list on the correct position
 -- and nothing else
-prop_bangBangEquals_correct :: Eq a => [a] -> (Int, a) -> Property
+prop_bangBangEquals_correct :: (Int, Int) -> Property
 prop_bangBangEquals_correct org (i,y) = not (validIndex org i) ==>
                              length banged == length org && banged !! i == y
      where banged = org !!= (i,y)
