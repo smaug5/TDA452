@@ -64,8 +64,8 @@ showExpr :: Expr -> String
 showExpr (Num num)                 = show num
 showExpr (VarX)                    = "x"
 showExpr (Function func expr)      = showFunction (Function func expr)
-showExpr (Operation op expr expr') = showExpr expr ++ showOperator op  ++ showExpr
-                                     expr'
+showExpr (Operation op expr expr') = showExpr expr ++ showOperator op  ++ "(" ++ showExpr
+                                     expr' ++ ")"
 
 
 showOperator :: Op -> String
@@ -119,7 +119,7 @@ parseSin = do
     char 's'
     char 'i'
     char 'n'
-    e <- parseOp
+    e <- parseTerm
     return $ (Function Sin) e
 
 parseCos :: Parser Expr
@@ -127,7 +127,7 @@ parseCos = do
     char 'c'
     char 'o'
     char 's'
-    e <- parseOp
+    e <- parseTerm
 
     return $ (Function Cos) e
 
@@ -140,7 +140,7 @@ parseTerm = parsePar <|> parseFunction <|> parseNumberWithDec <|> parseNumber <|
 
 parseAdd :: Parser Expr
 parseAdd = do
-    term <- parseTerm
+    term <- parseMul <|> parseTerm
     terms <- zeroOrMore (do
                 char '+'
                 parseTerm)
@@ -149,14 +149,14 @@ parseAdd = do
 
 parseMul :: Parser Expr
 parseMul = do
-    term <- parseAdd <|> parseTerm
+    term <- parseTerm
     terms <- zeroOrMore (do 
         char '*'
         parseTerm)
     return $ foldl (Operation Mul) term terms
 
 parseOp :: Parser Expr
-parseOp = parseMul <|> parseAdd
+parseOp = parseAdd <|> parseMul
 
 readExpr :: String -> Maybe Expr
 readExpr strx = do
@@ -205,3 +205,85 @@ arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
 
 instance Arbitrary Expr where
     arbitrary = sized arbExpr
+
+------F-------------------------------------------------------------------------------
+
+simplify :: Expr -> Expr
+-- Simply a number or a variable
+simplify VarX    = VarX
+simplify (Num n) = Num n
+
+-- Multiplication with zero
+simplify (Operation Mul (Num 0) _ ) = Num 0
+simplify (Operation Mul _ (Num 0))  = Num 0
+
+-- Multiplication with one
+simplify (Operation Mul (Num 1.0) e) = e
+simplify (Operation Mul e (Num 1.0)) = e
+
+-- Multification with variable or 2 simple numbers
+simplify (Operation Mul e VarX) = Operation Mul (simplify e) VarX
+simplify (Operation Mul VarX e) = Operation Mul VarX (simplify e)
+simplify (Operation Mul (Num n1) (Num n2)) = Num (n1 * n2)
+
+-- Multiplication between expressions
+simplify (Operation Mul e1 e2)
+    | e1' == e1 && e2' == e2 = (Operation Mul) e1 e2
+    | e1' == e1              = simplify $ Operation Mul e1 e2'
+    | e2' == e2              = simplify $ Operation Mul e1' e2
+    | otherwise              = simplify $ Operation Mul e1' e2'
+      where e1' = simplify e1
+            e2' = simplify e2
+
+-- Addition
+simplify (Operation Add VarX (Num 0)) = VarX
+simplify (Operation Add (Num 0) VarX) = VarX
+simplify (Operation Add VarX VarX)    = Operation Mul (Num 2) VarX
+
+-- Simplifying expressions with additions
+simplify (Operation Add e VarX)            = Operation Add (simplify e) VarX
+simplify (Operation Add VarX e)            = Operation Add VarX (simplify e)
+simplify (Operation Add (Num n1) (Num n2)) = Num (n1 + n2)
+simplify (Operation Add e1 e2)
+    | e1' == e1 && e2' == e2 = Operation Add e1 e2
+    | e1' == e1              = simplify $ Operation Add e1 e2'
+    | e2' == e2              = simplify $ Operation Add e1' e2
+    | otherwise              = simplify $ Operation Add e1' e2'
+      where e1' = simplify e1
+            e2' = simplify e2
+
+simplify (Function Sin (Num n)) = Num $ Prelude.sin n
+simplify (Function Cos (Num n)) = Num $ Prelude.cos n
+
+simplify (Function Sin e)
+    | e' == e = Function Sin e
+    | otherwise = simplify $ Function Sin e'
+      where e' = simplify e
+
+simplify (Function Cos e)
+    | e' == e = Function Cos e
+    | otherwise = simplify $ Function Cos e'
+      where e' = simplify e
+
+
+prop_Simplify :: Expr -> Bool
+prop_Simplify e = eval (simplify e) 1 == eval e 1
+
+
+-----G--------------------------------------------------------------------------------
+
+differentiate :: Expr -> Expr
+differentiate e = simplify $ differentiate' $ simplify e
+
+
+-- sin(f(x)) = f'(x) (cos(f(x))
+-- cos(f(x)) = f'(x) (-sin(f(x)))
+differentiate' :: Expr -> Expr
+differentiate' (Function Sin e) = Operation Mul (differentiate e) (Function Cos e)
+differentiate' (Function Cos e) = Operation Mul (differentiate e) (Operation Mul (Num (-1)) (Function Sin e))
+
+differentiate' (Operation Add e1 e2) = Operation Add (differentiate e1) (differentiate e2)
+differentiate' (Operation Mul e1 e2) = Operation Add (Operation Mul (differentiate e1) e2) (Operation Mul e1 (differentiate e2))
+
+differentiate' VarX = Num 1
+differentiate' (Num n) = Num 0
