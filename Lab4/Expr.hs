@@ -1,7 +1,10 @@
 module Expr where
 import Parsing
+import Data.Maybe
+import Test.QuickCheck
 
-data Op = Add | Sub | Mul
+
+data Op = Add | Mul
             deriving (Eq, Show)
 
 data Func = Sin | Cos
@@ -15,7 +18,16 @@ data Expr =  Num Double
 
 -- sin(2+9)
 -- cos(2*3)+4*x
-testEXPR = Operation Add (Function Cos (Operation Mul (Num 2) (Num 3))) (Operation Mul (Num 4) (VarX))
+expr1 = Operation Add (Function Cos (Operation Mul (Num 2) (Num 3))) (Operation Mul (Num 4) (VarX))
+
+expr2 = Function Cos (Operation Mul (Num 2) (Num 3))
+
+strAdd        = "1.0+2.0"
+strFunc       = "sin1"
+strMul        = "2*3"
+strPar        = "(1+1)"
+strFuncMul    = "sin(2*3)"
+strAddFuncMul = "1+sin(2*3)"
 
 -------A---------------------------------------------------------------------------
 
@@ -50,13 +62,14 @@ size (Operation _ expr expr' ) = 1 + size expr + size expr'
 
 showExpr :: Expr -> String
 showExpr (Num num)                 = show num
-showExpr (VarX)            = "x"
+showExpr (VarX)                    = "x"
 showExpr (Function func expr)      = showFunction (Function func expr)
-showExpr (Operation op expr expr') = showExpr expr ++ showOperator op  ++ showExpr expr'
+showExpr (Operation op expr expr') = showExpr expr ++ showOperator op  ++ showExpr
+                                     expr'
 
 
 showOperator :: Op -> String
-showOperator Add = " + "
+showOperator Add = "+"
 showOperator Mul = "*"
 
 showFunction :: Expr -> String
@@ -93,11 +106,102 @@ parseNumberWithDec = do
     decimals <- oneOrMore digit
     return (Num (read (ds ++ "." ++ decimals)))
 
+parsePar :: Parser Expr
+parsePar = do
+    char '('
+    e <- parseOp
+    char ')'
+    return e
+
+
+parseSin :: Parser Expr
+parseSin = do
+    char 's'
+    char 'i'
+    char 'n'
+    e <- parseOp
+    return $ (Function Sin) e
+
+parseCos :: Parser Expr
+parseCos = do
+    char 'c'
+    char 'o'
+    char 's'
+    e <- parseOp
+
+    return $ (Function Cos) e
+
 parseFunction :: Parser Expr
-parseFunction = do
-    
+parseFunction = parseSin <|> parseCos
+
+parseTerm :: Parser Expr
+parseTerm = parsePar <|> parseFunction <|> parseNumberWithDec <|> parseNumber <|> parseVariable
 
 
-readExpr :: String -> Maybe (Expr, String)
-readExpr str = parse ((parseNumberWithDec <|> parseNumber) <|> parseVariable) str
+parseAdd :: Parser Expr
+parseAdd = do
+    term <- parseTerm
+    terms <- zeroOrMore (do
+                char '+'
+                parseTerm)
+    return $ foldl (Operation Add) term terms
 
+
+parseMul :: Parser Expr
+parseMul = do
+    term <- parseAdd <|> parseTerm
+    terms <- zeroOrMore (do 
+        char '*'
+        parseTerm)
+    return $ foldl (Operation Mul) term terms
+
+parseOp :: Parser Expr
+parseOp = parseMul <|> parseAdd
+
+readExpr :: String -> Maybe Expr
+readExpr strx = do
+    (e, str) <- parse parseOp str
+    return e
+    where 
+        str = filter (/=' ') strx
+
+
+
+
+assoc :: Expr -> Expr
+assoc (Operation Add (Operation Add e1 e2) e3)  = assoc (Operation Add e1 (Operation Add e2 e3))
+assoc (Operation Add e1          e2)            = Operation Add (assoc e1) (assoc e2)
+assoc (Operation Mul (Operation Mul e1 e2) e3)  = assoc $ Operation Mul e1 $ Operation Mul e2 e3
+assoc (Operation Mul e1          e2)            = Operation Mul (assoc e1) (assoc e2)
+assoc  VarX                                     = VarX
+assoc (Function Sin e)                          = Function Sin $ assoc e
+assoc (Function Cos e)                          = Function Cos $ assoc e
+assoc (Num n)                                   = Num n
+
+---------E----------------------------------------------------------------------------
+
+prop_ShowReadExpr :: Expr -> Bool
+prop_ShowReadExpr expr = (fromJust $ readExpr $ showExpr expr) == expr
+
+arbExpr :: Int -> Gen Expr
+arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
+    where arbNum = elements $ map Num [1,n]
+          arbBin s = do
+            bin <- elements [Operation Add, Operation Mul]
+            e1 <- arbExpr $ s `div` 2
+            e2 <- arbExpr $ s `div` 2
+            return $ bin e1 e2
+          
+          arbFunc s = do
+            f <- elements [Function Sin, Function Cos]
+            e <- arbExpr $ s `div` 2
+            return $ f e
+          
+          n = 7
+
+
+
+--Num <$> choose (1.0, 99.0)
+
+instance Arbitrary Expr where
+    arbitrary = sized arbExpr
