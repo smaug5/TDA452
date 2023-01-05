@@ -52,10 +52,11 @@ cos value = Function Cos value
 
 
 size :: Expr -> Int
-size (Num _)                   = 0
-size (VarX)                    = 0
+size (Num _)                   = 1 -- Due to feedback from review
+size (VarX)                    = 1 -- Due to feedback from review
 size (Function _ expr)         = 1 + size expr
 size (Operation _ expr expr' ) = 1 + size expr + size expr'
+-- In the description for the lab it says we should count "Functions" and "Operators", which would exclude variables and numbers to be base case 0.
 
 
 --------B-----------------------------------------------------------------------
@@ -185,7 +186,7 @@ prop_ShowReadExpr expr = (fromJust $ readExpr $ showExpr expr) == expr
 
 arbExpr :: Int -> Gen Expr
 arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
-    where arbNum = elements $ map Num [1,n]
+    where arbNum = elements $ map Num [-n,n]
           arbBin s = do
             bin <- elements [Operation Add, Operation Mul]
             e1 <- arbExpr $ s `div` 2
