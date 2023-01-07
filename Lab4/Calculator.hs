@@ -50,7 +50,18 @@ readAndDraw input canvas =
      UI.fillText formula (10,canHeight/2) canvas
      path "blue" [(10,10),(canWidth-10,canHeight/2)] canvas
 
+--- H
 
+-- converts a pixel x-coordinate to a real x-coordinate 
+pixToReal :: Double -> Double 
+pixToReal x = x * 0.04
+-- converts a real y-coordinate to a pixel y-coordinate 
+realToPix :: Double -> Double 
+realToPix y = x / 0.04
+
+inrange :: Point -> Int -> Bool
+inrange x height = (round (snd x)) <= height && (round (snd x)) > -height
 
 points :: Expr -> Double -> (Int, Int) -> [Point]
-points exp scale (width, height) = 
+points exp scale (width, height) = filter inrange [(fromIntegral x, realToPix(eval exp (pixToReal x))) | x <- [-width..width]]
+

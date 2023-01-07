@@ -64,7 +64,7 @@ size (Operation _ expr expr' ) = 1 + size expr + size expr'
 showExpr :: Expr -> String
 showExpr (Num num)                 = show num
 showExpr (VarX)                    = "x"
-showExpr (Function func expr)      = showFunction (Function func expr) ++ convert (Function func expr) expr
+showExpr (Function func expr)      = showFunction (Function func expr)
 showExpr (Operation op expr expr') = convert (Operation op expr expr') expr ++ showOperator op  ++
                                       convert (Operation op expr expr') expr'
 
@@ -170,7 +170,7 @@ parseAdd = do
     term <- parseMul <|> parseTerm
     terms <- zeroOrMore (do
                 char '+'
-                parseTerm)
+                parseMul <|> parseTerm)
     return $ foldl (Operation Add) term terms
 
 
