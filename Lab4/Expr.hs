@@ -64,10 +64,22 @@ size (Operation _ expr expr' ) = 1 + size expr + size expr'
 showExpr :: Expr -> String
 showExpr (Num num)                 = show num
 showExpr (VarX)                    = "x"
-showExpr (Function func expr)      = showFunction (Function func expr)
-showExpr (Operation op expr expr') = showExpr expr ++ showOperator op  ++ "(" ++ showExpr
-                                     expr' ++ ")"
+showExpr (Function func expr)      = showFunction (Function func expr) ++ convert (Function func expr) expr
+showExpr (Operation op expr expr') = convert (Operation op expr expr') expr ++ showOperator op  ++
+                                      convert (Operation op expr expr') expr'
 
+higherPrec :: Expr -> Expr -> Bool
+higherPrec (Operation Mul e11 e12) (Operation Add e21 e22) = True
+higherPrec (Function Sin e1) (Operation Mul e21 e22) = True
+higherPrec (Function Sin e1) (Operation Add e21 e22) = True
+higherPrec (Function Cos e1) (Operation Mul e21 e22) = True
+higherPrec (Function Cos e1) (Operation Add e21 e22) = True
+higherPrec e1 e2 = False
+
+convert :: Expr -> Expr -> String
+convert e1 e2
+  | e1 `higherPrec` e2 = "(" ++ showExpr e2 ++ ")"
+  | otherwise = showExpr e2
 
 showOperator :: Op -> String
 showOperator Add = "+"
@@ -100,12 +112,26 @@ parseNumber = do
     ds <- oneOrMore digit
     return (Num (read ds))
 
+parseNegative :: Parser Expr
+parseNegative = do
+    char '-'
+    ds <- oneOrMore digit
+    return (Num (read ("-" ++ ds)))
+
 parseNumberWithDec :: Parser Expr
 parseNumberWithDec = do
     ds <- oneOrMore digit
     char '.'
     decimals <- oneOrMore digit
     return (Num (read (ds ++ "." ++ decimals)))
+
+parseNegativeWithDec :: Parser Expr
+parseNegativeWithDec = do
+    char '-'
+    ds <- oneOrMore digit
+    char '.'
+    decimals <- oneOrMore digit
+    return (Num (read ("-" ++ ds ++ "." ++ decimals)))
 
 parsePar :: Parser Expr
 parsePar = do
@@ -186,19 +212,20 @@ prop_ShowReadExpr expr = (fromJust $ readExpr $ showExpr expr) == expr
 
 arbExpr :: Int -> Gen Expr
 arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
-    where arbNum = elements $ map Num [-n,n]
-          arbBin s = do
+    where 
+        arbNum = do
+            Positive n <- arbitrary
+            return $ Num n
+        arbBin s = do
             bin <- elements [Operation Add, Operation Mul]
             e1 <- arbExpr $ s `div` 2
             e2 <- arbExpr $ s `div` 2
-            return $ bin e1 e2
-          
-          arbFunc s = do
+            return $ bin e1 e2    
+        arbFunc s = do
             f <- elements [Function Sin, Function Cos]
             e <- arbExpr $ s `div` 2
             return $ f e
           
-          n = 7
 
 
 
