@@ -66,7 +66,7 @@ showExpr (Num num)                 = show num
 showExpr (VarX)                    = "x"
 showExpr (Function func expr)      = showFunction (Function func expr)
 showExpr (Operation op expr expr') = convert (Operation op expr expr') expr ++ showOperator op  ++
-                                      convert (Operation op expr expr') expr'
+                                     convert (Operation op expr expr') expr'
 
 higherPrec :: Expr -> Expr -> Bool
 higherPrec (Operation Mul e11 e12) (Operation Add e21 e22) = True
@@ -162,7 +162,7 @@ parseFunction :: Parser Expr
 parseFunction = parseSin <|> parseCos
 
 parseTerm :: Parser Expr
-parseTerm = parsePar <|> parseFunction <|> parseNumberWithDec <|> parseNumber <|> parseVariable
+parseTerm = parsePar <|> parseFunction <|> parseNegativeWithDec <|> parseNumberWithDec <|> parseNegative <|> parseNumber <|> parseVariable
 
 
 parseAdd :: Parser Expr
@@ -208,13 +208,16 @@ assoc (Num n)                                   = Num n
 ---------E----------------------------------------------------------------------------
 
 prop_ShowReadExpr :: Expr -> Bool
-prop_ShowReadExpr expr = (fromJust $ readExpr $ showExpr expr) == expr
+prop_ShowReadExpr expr = assoc ((fromJust $ readExpr $ showExpr expr)) == assoc expr
 
 arbExpr :: Int -> Gen Expr
-arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
+arbExpr s = frequency [(1, arbX), (1, arbNum), (s, arbBin s), (s, arbFunc s)]
     where 
+        arbX = do
+            return $ VarX
         arbNum = do
-            Positive n <- arbitrary
+            -- n <- arbitrary -- Doesn't work since it produces outputs such as Num (-7.0435e-2)
+            n <- elements $ map (\x -> fromIntegral x / 10) [(-900)..990] -- arbitrary
             return $ Num n
         arbBin s = do
             bin <- elements [Operation Add, Operation Mul]
@@ -225,7 +228,7 @@ arbExpr s = frequency [(1, arbNum), (s, arbBin s), (s, arbFunc s)]
             f <- elements [Function Sin, Function Cos]
             e <- arbExpr $ s `div` 2
             return $ f e
-          
+
 
 
 
@@ -295,7 +298,7 @@ simplify (Function Cos e)
 
 
 prop_Simplify :: Expr -> Bool
-prop_Simplify e = eval (simplify e) 1 == eval e 1
+prop_Simplify e = eval (simplify e) 3 == eval e 3 && simplify e == simplify (simplify e)
 
 
 -----G--------------------------------------------------------------------------------

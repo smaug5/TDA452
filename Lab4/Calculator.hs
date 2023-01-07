@@ -51,17 +51,17 @@ readAndDraw input canvas =
      path "blue" [(10,10),(canWidth-10,canHeight/2)] canvas
 
 --- H
-
+type Point = (Double, Double)
 -- converts a pixel x-coordinate to a real x-coordinate 
 pixToReal :: Double -> Double 
 pixToReal x = x * 0.04
 -- converts a real y-coordinate to a pixel y-coordinate 
 realToPix :: Double -> Double 
-realToPix y = x / 0.04
+realToPix x = -(x / 0.04) + 150
 
-inrange :: Point -> Int -> Bool
-inrange x height = (round (snd x)) <= height && (round (snd x)) > -height
+inrange :: Double -> Point -> Bool
+inrange height x = (snd x) <= height && (snd x) > (-height)
 
 points :: Expr -> Double -> (Int, Int) -> [Point]
-points exp scale (width, height) = filter inrange [(fromIntegral x, realToPix(eval exp (pixToReal x))) | x <- [-width..width]]
+points exp scale (width, height) = filter (inrange (fromIntegral height)) [(fromIntegral x + fromIntegral (width `div` 2), realToPix (eval exp (pixToReal (fromIntegral x)))) | x <- [-width `div` 2..width `div` 2]]
 
