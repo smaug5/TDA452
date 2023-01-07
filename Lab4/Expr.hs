@@ -18,7 +18,8 @@ data Expr =  Num Double
 
 -- sin(2+9)
 -- cos(2*3)+4*x
-expr1 = Operation Add (Function Cos (Operation Mul (Num 2) (Num 3))) (Operation Mul (Num 4) (VarX))
+
+expr1 = Operation Add (Function Cos (Operation Mul (Num 2) (Num 3))) (Operation Mul (Num 4) VarX)
 
 expr2 = Function Cos (Operation Mul (Num 2) (Num 3))
 
@@ -53,7 +54,7 @@ cos value = Function Cos value
 
 size :: Expr -> Int
 size (Num _)                   = 1 -- Due to feedback from review
-size (VarX)                    = 1 -- Due to feedback from review
+size VarX                      = 1 -- Due to feedback from review
 size (Function _ expr)         = 1 + size expr
 size (Operation _ expr expr' ) = 1 + size expr + size expr'
 -- In the description for the lab it says we should count "Functions" and "Operators", which would exclude variables and numbers to be base case 0.
@@ -63,7 +64,7 @@ size (Operation _ expr expr' ) = 1 + size expr + size expr'
 
 showExpr :: Expr -> String
 showExpr (Num num)                 = show num
-showExpr (VarX)                    = "x"
+showExpr VarX                      = "x"
 showExpr (Function func expr)      = showFunction (Function func expr)
 showExpr (Operation op expr expr') = convert (Operation op expr expr') expr ++ showOperator op  ++
                                      convert (Operation op expr expr') expr'
@@ -105,7 +106,7 @@ eval (Operation Add expr expr') x = eval expr x + eval expr' x
 parseVariable :: Parser Expr
 parseVariable = do
     char 'x'
-    return (VarX)
+    return VarX
 
 parseNumber :: Parser Expr
 parseNumber = do
@@ -147,7 +148,7 @@ parseSin = do
     char 'i'
     char 'n'
     e <- parseTerm
-    return $ (Function Sin) e
+    return $ Function Sin e
 
 parseCos :: Parser Expr
 parseCos = do
@@ -155,8 +156,7 @@ parseCos = do
     char 'o'
     char 's'
     e <- parseTerm
-
-    return $ (Function Cos) e
+    return $ Function Cos e
 
 parseFunction :: Parser Expr
 parseFunction = parseSin <|> parseCos
@@ -208,7 +208,7 @@ assoc (Num n)                                   = Num n
 ---------E----------------------------------------------------------------------------
 
 prop_ShowReadExpr :: Expr -> Bool
-prop_ShowReadExpr expr = assoc ((fromJust $ readExpr $ showExpr expr)) == assoc expr
+prop_ShowReadExpr expr = assoc (fromJust $ readExpr $ showExpr expr) == assoc expr
 
 arbExpr :: Int -> Gen Expr
 arbExpr s = frequency [(1, arbX), (1, arbNum), (s, arbBin s), (s, arbFunc s)]
@@ -217,7 +217,7 @@ arbExpr s = frequency [(1, arbX), (1, arbNum), (s, arbBin s), (s, arbFunc s)]
             return $ VarX
         arbNum = do
             -- n <- arbitrary -- Doesn't work since it produces outputs such as Num (-7.0435e-2)
-            n <- elements $ map (\x -> fromIntegral x / 10) [(-900)..990] -- arbitrary
+            n <- elements $ map (\x -> fromIntegral x / 10) [(-1000)..1000] -- arbitrary
             return $ Num n
         arbBin s = do
             bin <- elements [Operation Add, Operation Mul]
@@ -259,7 +259,7 @@ simplify (Operation Mul (Num n1) (Num n2)) = Num (n1 * n2)
 
 -- Multiplication between expressions
 simplify (Operation Mul e1 e2)
-    | e1' == e1 && e2' == e2 = (Operation Mul) e1 e2
+    | e1' == e1 && e2' == e2 = Operation Mul e1 e2
     | e1' == e1              = simplify $ Operation Mul e1 e2'
     | e2' == e2              = simplify $ Operation Mul e1' e2
     | otherwise              = simplify $ Operation Mul e1' e2'
