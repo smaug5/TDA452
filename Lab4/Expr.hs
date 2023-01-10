@@ -304,14 +304,14 @@ prop_Simplify_withNoJunk :: Expr -> Bool
 prop_Simplify_withNoJunk e = noJunk (simplify e)
 
 noJunk :: Expr -> Bool
-noJunk VarX                      = True
-noJunk (Num n)                   = True
+noJunk VarX                            = True
+noJunk (Num n)                         = True
 
 noJunk (Operation _ (Num n) (Num n'))  = False
-noJunk (Function _ (Num n))          = False
+noJunk (Function _ (Num n))            = False
 
 noJunk (Operation op e e' )            = True && (noJunk e) && (noJunk e')
-noJunk (Function _ e)                = True && (noJunk e)
+noJunk (Function _ e)                  = True && (noJunk e)
 
 
 
