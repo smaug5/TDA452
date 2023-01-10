@@ -216,8 +216,8 @@ arbExpr s = frequency [(1, arbX), (1, arbNum), (s, arbBin s), (s, arbFunc s)]
         arbX = do
             return $ VarX
         arbNum = do
-            -- n <- arbitrary -- Doesn't work since it produces outputs such as Num (-7.0435e-2)
-            n <- elements $ map (\x -> fromIntegral x / 10) [(-1000)..1000] -- arbitrary
+            n <- arbitrary -- Doesn't work since it produces outputs such as Num (-7.0435e-2)
+            -- n <- elements $ map (\x -> fromIntegral x / 10) [(-1000)..1000] -- arbitrary
             return $ Num n
         arbBin s = do
             bin <- elements [Operation Add, Operation Mul]
@@ -292,13 +292,27 @@ simplify (Function Sin e)
       where e' = simplify e
 
 simplify (Function Cos e)
-    | e' == e = Function Cos e
+    | e' == e   = Function Cos e
     | otherwise = simplify $ Function Cos e'
-      where e' = simplify e
+      where e'  = simplify e
 
 
 prop_Simplify :: Expr -> Bool
 prop_Simplify e = eval (simplify e) 3 == eval e 3 && simplify e == simplify (simplify e)
+
+prop_Simplify_withNoJunk :: Expr -> Bool
+prop_Simplify_withNoJunk e = noJunk (simplify e)
+
+noJunk :: Expr -> Bool
+noJunk VarX                      = True
+noJunk (Num n)                   = True
+
+noJunk (Operation _ (Num n) (Num n'))  = False
+noJunk (Function _ (Num n))          = False
+
+noJunk (Operation op e e' )            = True && (noJunk e) && (noJunk e')
+noJunk (Function _ e)                = True && (noJunk e)
+
 
 
 -----G--------------------------------------------------------------------------------
